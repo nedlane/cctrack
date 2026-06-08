@@ -2,6 +2,26 @@
 
 A cost tracker for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Parses your local JSONL logs, calculates spend per session/project/model, and serves a real-time dashboard — all from a single binary.
 
+> ### About this fork
+>
+> This is a fork of [**ksred/cctrack**](https://github.com/ksred/cctrack) by
+> Kyle Redelinghuys, whose original project is the single-machine tracker,
+> dashboard, model breakdown, activity heatmap, request timeline, and trend
+> comparisons. All of that is retained.
+>
+> The fork's focus is **multi-machine, fleet-wide tracking and sharper stats**.
+> What it adds on top of upstream:
+>
+> - **Tailnet sync** — pull and aggregate Claude Code usage from every machine
+>   on your Tailscale network into one dashboard, with per-host attribution
+>   (see [Sync usage across your Tailscale network](#sync-usage-across-your-tailscale-network)).
+> - **Group-by-project sessions** — collapse the session list into collapsible
+>   per-project groups so heavily-used projects are legible instead of a wall of
+>   near-identical rows.
+> - **Expanded dashboard stats** — all-time spend, average cost per session and
+>   per active day, and cache-read cost share (typically the dominant cost in
+>   Claude Code usage).
+
 ## Features
 
 - **Cost tracking** — today, this week, this month, and projected monthly spend
@@ -127,6 +147,12 @@ sync every SSH-reachable peer.
 
 All settings can also be changed from the dashboard's settings page.
 
+## Credits
+
+Forked from [ksred/cctrack](https://github.com/ksred/cctrack) by Kyle
+Redelinghuys, who wrote the original tracker, dashboard, and analytics.
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — original copyright © Kyle Redelinghuys, retained per the
+license terms.
