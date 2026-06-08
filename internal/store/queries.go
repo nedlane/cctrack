@@ -103,7 +103,7 @@ func (s *Store) GetDailySummary(days int) ([]DailySpend, error) {
 }
 
 func (s *Store) TopSessions(n int) ([]Session, error) {
-	rows, err := s.db.Query(`SELECT id, project, slug, model, started_at, last_activity,
+	rows, err := s.db.Query(`SELECT id, project, slug, model, host, started_at, last_activity,
 		total_input, total_output, total_cache_read, total_cache_write, total_cost
 		FROM sessions ORDER BY total_cost DESC LIMIT ?`, n)
 	if err != nil {
@@ -114,7 +114,7 @@ func (s *Store) TopSessions(n int) ([]Session, error) {
 	var sessions []Session
 	for rows.Next() {
 		var sess Session
-		if err := rows.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model,
+		if err := rows.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model, &sess.Host,
 			&sess.StartedAt, &sess.LastActivity,
 			&sess.TotalInput, &sess.TotalOutput, &sess.TotalCacheRead, &sess.TotalCacheWrite,
 			&sess.TotalCost); err != nil {
@@ -126,7 +126,7 @@ func (s *Store) TopSessions(n int) ([]Session, error) {
 }
 
 func (s *Store) RecentSessions(n int) ([]Session, error) {
-	rows, err := s.db.Query(`SELECT id, project, slug, model, started_at, last_activity,
+	rows, err := s.db.Query(`SELECT id, project, slug, model, host, started_at, last_activity,
 		total_input, total_output, total_cache_read, total_cache_write, total_cost
 		FROM sessions ORDER BY last_activity DESC LIMIT ?`, n)
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *Store) RecentSessions(n int) ([]Session, error) {
 	var sessions []Session
 	for rows.Next() {
 		var sess Session
-		if err := rows.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model,
+		if err := rows.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model, &sess.Host,
 			&sess.StartedAt, &sess.LastActivity,
 			&sess.TotalInput, &sess.TotalOutput, &sess.TotalCacheRead, &sess.TotalCacheWrite,
 			&sess.TotalCost); err != nil {
@@ -304,6 +304,43 @@ func (s *Store) GetModelBreakdown() ([]ModelSummary, error) {
 		rates := calculator.GetRates(m.Model)
 		m.Family = rates.Family
 		results = append(results, m)
+	}
+	return results, nil
+}
+
+// --- Feature: Per-host breakdown (Tailnet) ---
+
+type HostSummary struct {
+	Host         string  `json:"host"`
+	SessionCount int     `json:"session_count"`
+	TotalCost    float64 `json:"total_cost"`
+	TotalTokens  int64   `json:"total_tokens"`
+	LastActivity string  `json:"last_activity"`
+}
+
+func (s *Store) GetHostBreakdown() ([]HostSummary, error) {
+	rows, err := s.db.Query(`
+		SELECT host,
+			COUNT(*) as session_count,
+			SUM(total_cost) as total_cost,
+			SUM(total_input + total_output + total_cache_read + total_cache_write) as total_tokens,
+			MAX(last_activity) as last_activity
+		FROM sessions
+		WHERE host != ''
+		GROUP BY host
+		ORDER BY total_cost DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []HostSummary
+	for rows.Next() {
+		var h HostSummary
+		if err := rows.Scan(&h.Host, &h.SessionCount, &h.TotalCost, &h.TotalTokens, &h.LastActivity); err != nil {
+			return nil, err
+		}
+		results = append(results, h)
 	}
 	return results, nil
 }

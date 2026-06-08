@@ -35,6 +35,7 @@ func (a *API) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/projects/monthly", a.handleProjectMonthly)
 	mux.HandleFunc("GET /api/v1/rates", a.handleRates)
 	mux.HandleFunc("GET /api/v1/models", a.handleModels)
+	mux.HandleFunc("GET /api/v1/hosts", a.handleHosts)
 	mux.HandleFunc("GET /api/v1/heatmap", a.handleHeatmap)
 	mux.HandleFunc("GET /api/v1/sessions/{id}/requests", a.handleSessionRequests)
 	mux.HandleFunc("GET /api/v1/ws", a.handleWS)
@@ -145,9 +146,10 @@ func (a *API) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) handlePostSettings(w http.ResponseWriter, r *http.Request) {
 	var updates struct {
-		MonthlyBudgetUSD   *float64 `json:"monthly_budget_usd"`
-		OpenBrowserOnServe *bool    `json:"open_browser_on_serve"`
-		LogDir             *string  `json:"log_dir"`
+		MonthlyBudgetUSD   *float64              `json:"monthly_budget_usd"`
+		OpenBrowserOnServe *bool                 `json:"open_browser_on_serve"`
+		LogDir             *string               `json:"log_dir"`
+		Tailnet            *config.TailnetConfig `json:"tailnet"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		http.Error(w, "invalid JSON", 400)
@@ -162,6 +164,9 @@ func (a *API) handlePostSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if updates.LogDir != nil {
 		a.cfg.LogDir = *updates.LogDir
+	}
+	if updates.Tailnet != nil {
+		a.cfg.Tailnet = *updates.Tailnet
 	}
 
 	if err := a.cfg.Save(); err != nil {
@@ -200,6 +205,15 @@ func (a *API) handleModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, models)
+}
+
+func (a *API) handleHosts(w http.ResponseWriter, r *http.Request) {
+	hosts, err := a.store.GetHostBreakdown()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	writeJSON(w, hosts)
 }
 
 func (a *API) handleHeatmap(w http.ResponseWriter, r *http.Request) {

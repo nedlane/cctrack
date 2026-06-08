@@ -13,16 +13,25 @@ import (
 )
 
 type Parser struct {
-	store *store.Store
+	store     *store.Store
+	localHost string
 }
 
 func New(s *store.Store) *Parser {
-	return &Parser{store: s}
+	host, _ := os.Hostname()
+	return &Parser{store: s, localHost: host}
 }
 
-// ParseAll discovers and parses all JSONL files in the log directory.
+// ParseAll discovers and parses all JSONL files in the log directory, stamping
+// each session with the local hostname.
 // Returns the number of files parsed and sessions affected.
 func (p *Parser) ParseAll(logDir string) (int, int, error) {
+	return p.ParseAllForHost(logDir, p.localHost)
+}
+
+// ParseAllForHost is ParseAll with an explicit host label, used when parsing a
+// mirror of another machine's logs pulled over the tailnet.
+func (p *Parser) ParseAllForHost(logDir, host string) (int, int, error) {
 	files, err := DiscoverFiles(logDir)
 	if err != nil {
 		return 0, 0, fmt.Errorf("discovering files: %w", err)
@@ -32,7 +41,7 @@ func (p *Parser) ParseAll(logDir string) (int, int, error) {
 	sessionsAffected := make(map[string]bool)
 
 	for _, path := range files {
-		sessions, err := p.ParseFile(path)
+		sessions, err := p.parseFile(path, host)
 		if err != nil {
 			log.Printf("Warning: failed to parse %s: %v", path, err)
 			continue
@@ -48,9 +57,16 @@ func (p *Parser) ParseAll(logDir string) (int, int, error) {
 	return filesParsed, len(sessionsAffected), nil
 }
 
-// ParseFile reads new data from a single JSONL file (from last known offset).
+// ParseFile reads new data from a single JSONL file, stamping sessions with the
+// local hostname (used by the file watcher).
 // Returns the session IDs that were affected.
 func (p *Parser) ParseFile(path string) ([]string, error) {
+	return p.parseFile(path, p.localHost)
+}
+
+// parseFile reads new data from a single JSONL file (from last known offset),
+// attributing every session it writes to host.
+func (p *Parser) parseFile(path, host string) ([]string, error) {
 	offset, err := p.store.GetFileOffset(path)
 	if err != nil {
 		return nil, err
@@ -213,6 +229,7 @@ func (p *Parser) ParseFile(path string) ([]string, error) {
 			Project:         project,
 			Slug:            agg.slug,
 			Model:           agg.model,
+			Host:            host,
 			Timestamp:       agg.timestamp,
 			DeltaInput:      agg.input,
 			DeltaOutput:     agg.output,

@@ -40,6 +40,14 @@ export interface ModelSummary {
   total_tokens: number
 }
 
+export interface HostSummary {
+  host: string
+  session_count: number
+  total_cost: number
+  total_tokens: number
+  last_activity: string
+}
+
 export interface HeatmapCell {
   day: number
   hour: number

@@ -7,6 +7,7 @@ type Session struct {
 	Project        string  `json:"project"`
 	Slug           string  `json:"slug"`
 	Model          string  `json:"model"`
+	Host           string  `json:"host"`
 	StartedAt      string  `json:"started_at"`
 	LastActivity   string  `json:"last_activity"`
 	TotalInput     int64   `json:"total_input"`
@@ -25,6 +26,7 @@ type SessionDelta struct {
 	Project        string
 	Slug           string
 	Model          string
+	Host           string
 	Timestamp      string
 	DeltaInput     int64
 	DeltaOutput    int64
@@ -37,29 +39,30 @@ type SessionDelta struct {
 // Token counts are ADDITIVE — new values add to existing totals.
 func (s *Store) UpsertSession(d SessionDelta) error {
 	_, err := s.db.Exec(`
-		INSERT INTO sessions (id, project, slug, model, started_at, last_activity,
+		INSERT INTO sessions (id, project, slug, model, host, started_at, last_activity,
 			total_input, total_output, total_cache_read, total_cache_write, total_cost)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			slug          = CASE WHEN excluded.slug != '' THEN excluded.slug ELSE sessions.slug END,
 			model         = CASE WHEN excluded.model != '' THEN excluded.model ELSE sessions.model END,
+			host          = CASE WHEN excluded.host != '' THEN excluded.host ELSE sessions.host END,
 			last_activity = CASE WHEN excluded.last_activity > sessions.last_activity THEN excluded.last_activity ELSE sessions.last_activity END,
 			total_input   = sessions.total_input   + excluded.total_input,
 			total_output  = sessions.total_output  + excluded.total_output,
 			total_cache_read  = sessions.total_cache_read  + excluded.total_cache_read,
 			total_cache_write = sessions.total_cache_write + excluded.total_cache_write,
 			total_cost    = sessions.total_cost    + excluded.total_cost
-	`, d.ID, d.Project, d.Slug, d.Model, d.Timestamp, d.Timestamp,
+	`, d.ID, d.Project, d.Slug, d.Model, d.Host, d.Timestamp, d.Timestamp,
 		d.DeltaInput, d.DeltaOutput, d.DeltaCacheRead, d.DeltaCacheWrite, d.DeltaCost)
 	return err
 }
 
 func (s *Store) GetSession(id string) (*Session, error) {
-	row := s.db.QueryRow(`SELECT id, project, slug, model, started_at, last_activity,
+	row := s.db.QueryRow(`SELECT id, project, slug, model, host, started_at, last_activity,
 		total_input, total_output, total_cache_read, total_cache_write, total_cost
 		FROM sessions WHERE id = ?`, id)
 	sess := &Session{}
-	err := row.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model,
+	err := row.Scan(&sess.ID, &sess.Project, &sess.Slug, &sess.Model, &sess.Host,
 		&sess.StartedAt, &sess.LastActivity,
 		&sess.TotalInput, &sess.TotalOutput, &sess.TotalCacheRead, &sess.TotalCacheWrite,
 		&sess.TotalCost)

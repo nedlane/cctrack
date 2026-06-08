@@ -18,6 +18,7 @@ import (
 	"github.com/ksred/cctrack/internal/hub"
 	"github.com/ksred/cctrack/internal/parser"
 	"github.com/ksred/cctrack/internal/store"
+	"github.com/ksred/cctrack/internal/tailnet"
 	"github.com/ksred/cctrack/internal/watcher"
 	"github.com/spf13/cobra"
 )
@@ -116,6 +117,12 @@ var serveCmd = &cobra.Command{
 		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer stop()
 
+		// Periodic tailnet sync: pull other machines' logs on an interval and
+		// push a summary update so the dashboard reflects the whole tailnet.
+		if cfg.Tailnet.Enabled {
+			startTailnetSync(ctx, cfg, p, s, h)
+		}
+
 		go func() {
 			<-ctx.Done()
 			log.Println("Shutting down...")
@@ -130,6 +137,54 @@ var serveCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// startTailnetSync runs an initial tailnet sync shortly after startup and then
+// repeats on the configured interval until ctx is cancelled. After each cycle
+// that changed anything, it broadcasts a summary update over the hub.
+func startTailnetSync(ctx context.Context, cfg *config.Config, p *parser.Parser, s *store.Store, h *hub.Hub) {
+	interval := time.Duration(cfg.Tailnet.SyncIntervalMinutes) * time.Minute
+	if interval <= 0 {
+		interval = 5 * time.Minute
+	}
+	syncer := tailnet.FromConfig(cfg, p)
+
+	runOnce := func() {
+		report, err := syncer.Sync()
+		if err != nil {
+			log.Printf("tailnet sync error: %v", err)
+			return
+		}
+		if report.Skipped || report.TotalSessionsAffected == 0 {
+			return
+		}
+		log.Printf("tailnet sync: %d host(s), %d sessions updated", len(report.Hosts), report.TotalSessionsAffected)
+		if summary, err := s.GetSummary(); err == nil {
+			payload, _ := json.Marshal(summary)
+			h.Broadcast("summary.updated", payload)
+		}
+	}
+
+	go func() {
+		// Small initial delay so startup logging stays readable.
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(2 * time.Second):
+		}
+		runOnce()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				runOnce()
+			}
+		}
+	}()
 }
 
 func openBrowser(url string) {

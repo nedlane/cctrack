@@ -7,11 +7,24 @@ import (
 )
 
 type Config struct {
-	LogDir             string  `json:"log_dir"`
-	DBPath             string  `json:"db_path"`
-	Port               int     `json:"port"`
-	MonthlyBudgetUSD   float64 `json:"monthly_budget_usd"`
-	OpenBrowserOnServe bool    `json:"open_browser_on_serve"`
+	LogDir             string        `json:"log_dir"`
+	DBPath             string        `json:"db_path"`
+	Port               int           `json:"port"`
+	MonthlyBudgetUSD   float64       `json:"monthly_budget_usd"`
+	OpenBrowserOnServe bool          `json:"open_browser_on_serve"`
+	Tailnet            TailnetConfig `json:"tailnet"`
+}
+
+// TailnetConfig controls pulling Claude Code logs from other machines on the
+// user's Tailscale network. Disabled by default so single-machine setups are
+// unaffected.
+type TailnetConfig struct {
+	Enabled             bool     `json:"enabled"`
+	SyncIntervalMinutes int      `json:"sync_interval_minutes"`
+	RemoteClaudeDir     string   `json:"remote_claude_dir"` // relative to remote home
+	IncludeHosts        []string `json:"include_hosts"`     // empty = all SSH-capable peers
+	ExcludeHosts        []string `json:"exclude_hosts"`
+	SSHTimeoutSeconds   int      `json:"ssh_timeout_seconds"`
 }
 
 func DefaultConfig() *Config {
@@ -22,12 +35,26 @@ func DefaultConfig() *Config {
 		Port:               7432,
 		MonthlyBudgetUSD:   0,
 		OpenBrowserOnServe: true,
+		Tailnet: TailnetConfig{
+			Enabled:             false,
+			SyncIntervalMinutes: 5,
+			RemoteClaudeDir:     ".claude/projects",
+			IncludeHosts:        []string{},
+			ExcludeHosts:        []string{},
+			SSHTimeoutSeconds:   20,
+		},
 	}
 }
 
 func ConfigDir() string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".cctrack")
+}
+
+// MirrorRoot is where pulled remote logs are mirrored, one subdir per host:
+// ~/.cctrack/hosts/<host>/projects
+func MirrorRoot() string {
+	return filepath.Join(ConfigDir(), "hosts")
 }
 
 func ConfigPath() string {

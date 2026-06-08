@@ -53,6 +53,11 @@
       <ActivityHeatmap :cells="heatmap" />
     </div>
 
+    <!-- Tailnet: per-host breakdown (only when more than one machine reports) -->
+    <div class="host-row" v-if="hosts.length > 1">
+      <HostBreakdown :hosts="hosts" />
+    </div>
+
     <div class="section-header" v-if="store.recentSessions.length">
       <div class="section-title">Recent Sessions</div>
       <router-link class="view-all" to="/sessions">View all →</router-link>
@@ -124,15 +129,17 @@ import DailySpendChart from '../components/charts/DailySpendChart.vue'
 import TokenDonut from '../components/charts/TokenDonut.vue'
 import ModelBreakdown from '../components/charts/ModelBreakdown.vue'
 import ActivityHeatmap from '../components/charts/ActivityHeatmap.vue'
+import HostBreakdown from '../components/charts/HostBreakdown.vue'
 import SessionRow from '../components/domain/SessionRow.vue'
 import SessionDetail from '../components/domain/SessionDetail.vue'
 import SlideOver from '../components/primitives/SlideOver.vue'
-import type { Session, ModelSummary, HeatmapCell } from '../types'
-import { fetchSession, fetchModels, fetchHeatmap } from '../api'
+import type { Session, ModelSummary, HostSummary, HeatmapCell } from '../types'
+import { fetchSession, fetchModels, fetchHosts, fetchHeatmap } from '../api'
 
 const store = useDashboardStore()
 const selectedSession = ref<Session | null>(null)
 const models = ref<ModelSummary[]>([])
+const hosts = ref<HostSummary[]>([])
 const heatmap = ref<HeatmapCell[]>([])
 
 const currentDate = computed(() => {
@@ -168,8 +175,9 @@ async function openSession(id: string) {
 
 onMounted(async () => {
   if (!store.loaded) store.load()
-  const [m, h] = await Promise.all([fetchModels(), fetchHeatmap()])
+  const [m, hosts_, h] = await Promise.all([fetchModels(), fetchHosts(), fetchHeatmap()])
   models.value = m || []
+  hosts.value = hosts_ || []
   heatmap.value = h || []
 })
 </script>
@@ -214,6 +222,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 340px 1fr;
   gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+
+.host-row {
   margin-bottom: var(--space-8);
 }
 

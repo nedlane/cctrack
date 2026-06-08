@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -75,5 +76,26 @@ func (s *Store) migrate() error {
 		CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at);
 		CREATE INDEX IF NOT EXISTS idx_requests_session_id ON requests(session_id);
 	`)
+	if err != nil {
+		return err
+	}
+
+	// Additive migrations for databases created before the column existed.
+	if err := s.addColumnIfMissing("sessions", "host", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(`CREATE INDEX IF NOT EXISTS idx_sessions_host ON sessions(host)`); err != nil {
+		return err
+	}
+	return nil
+}
+
+// addColumnIfMissing runs ALTER TABLE ... ADD COLUMN, treating the
+// "duplicate column name" error as success so migrations re-run safely.
+func (s *Store) addColumnIfMissing(table, column, def string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, def))
+	if err != nil && strings.Contains(err.Error(), "duplicate column name") {
+		return nil
+	}
 	return err
 }

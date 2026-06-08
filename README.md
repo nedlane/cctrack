@@ -12,6 +12,7 @@ A cost tracker for [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - **Request timeline** — per-request token usage within each session
 - **Real-time updates** — file watcher + WebSocket push when new activity is detected
 - **Budget tracking** — set a monthly budget and see progress against it
+- **Tailnet sync** — aggregate usage from every machine on your Tailscale network into one dashboard
 - **Single binary** — Go CLI with an embedded Vue 3 SPA, no separate frontend server needed
 
 ## Installation
@@ -64,6 +65,32 @@ Prints today/week/month spend and your most expensive session to stdout.
 cctrack config
 ```
 
+### Sync usage across your Tailscale network
+
+```bash
+cctrack sync
+```
+
+Discovers every SSH-reachable machine on your tailnet, mirrors each one's
+`~/.claude/projects` logs locally, and folds their token usage into the same
+totals and projections. One machine acts as the aggregator; the others need no
+cctrack install — only Tailscale SSH access and their log files.
+
+How it finds and reaches peers:
+
+- **Discovery** — reads `tailscale status --json` and keeps peers that are
+  online and advertise Tailscale SSH (`sshHostKeys`). Windows boxes and any
+  peer without Tailscale SSH are skipped automatically.
+- **Transport** — pulls over `tailscale ssh <host>` (no usernames; Tailscale
+  ACLs resolve the login user), using `rsync` for incremental transfer with a
+  `tar`-stream fallback.
+- **Attribution** — each session is stamped with its host, so the dashboard
+  shows a **Spend by Host** breakdown once more than one machine reports.
+
+Enable it in config (or the dashboard settings) under the `tailnet` block.
+When `tailnet.enabled` is true, `cctrack serve` also re-syncs automatically on
+an interval. Mirrored logs are cached under `~/.cctrack/hosts/<host>/projects`.
+
 ## How it works
 
 1. Claude Code writes JSONL logs to `~/.claude/projects/<project>/<session>.jsonl`
@@ -83,9 +110,22 @@ Config is stored at `~/.config/cctrack/config.json`:
   "db_path": "~/.config/cctrack/cctrack.db",
   "port": 8877,
   "monthly_budget_usd": 200,
-  "open_browser_on_serve": true
+  "open_browser_on_serve": true,
+  "tailnet": {
+    "enabled": false,
+    "sync_interval_minutes": 5,
+    "remote_claude_dir": ".claude/projects",
+    "include_hosts": [],
+    "exclude_hosts": [],
+    "ssh_timeout_seconds": 20
+  }
 }
 ```
+
+The `tailnet` block controls cross-machine sync (see *Sync usage across your
+Tailscale network* above). It's disabled by default. `include_hosts` /
+`exclude_hosts` take Tailscale short hostnames; leave `include_hosts` empty to
+sync every SSH-reachable peer.
 
 All settings can also be changed from the dashboard's settings page.
 
