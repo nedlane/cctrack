@@ -2,7 +2,15 @@
   <div>
     <div class="page-header">
       <h1 class="page-title">Sessions</h1>
-      <div class="page-meta">{{ store.total }} total</div>
+      <div class="header-right">
+        <label class="group-toggle">
+          <span>Group by project</span>
+          <Toggle :model-value="store.groupByProject" @update:model-value="store.setGroupByProject" />
+        </label>
+        <div class="page-meta">
+          {{ store.groupByProject ? store.projectGroups.length + ' projects · ' : '' }}{{ store.total }} sessions
+        </div>
+      </div>
     </div>
 
     <div class="sessions-table-wrap">
@@ -32,7 +40,38 @@
             </th>
           </tr>
         </thead>
-        <tbody>
+
+        <!-- Grouped by project -->
+        <tbody v-if="store.groupByProject">
+          <template v-for="(group, gi) in store.projectGroups" :key="group.project">
+            <tr class="group-row" @click="store.toggleProject(group.project)">
+              <td class="rank">{{ gi + 1 }}</td>
+              <td>
+                <div class="group-name">
+                  <span class="caret" :class="{ open: store.isExpanded(group.project) }">▸</span>
+                  {{ group.project }}
+                  <span class="count-badge">{{ group.session_count }}</span>
+                </div>
+              </td>
+              <td></td>
+              <td class="time-cell">{{ formatDate(group.last_activity) }}</td>
+              <td class="token-cell">{{ formatTokens(group.total_tokens) }}</td>
+              <td class="cost-cell" :class="{ top: gi === 0 }">{{ formatCostDisplay(group.total_cost) }}</td>
+            </tr>
+            <SessionRow
+              v-show="store.isExpanded(group.project)"
+              v-for="(session, i) in group.sessions"
+              :key="session.id"
+              :session="session"
+              :rank="i + 1"
+              in-group
+              @select="store.selectSession"
+            />
+          </template>
+        </tbody>
+
+        <!-- Flat list -->
+        <tbody v-else>
           <SessionRow
             v-for="(session, i) in store.sessions"
             :key="session.id"
@@ -44,7 +83,7 @@
       </table>
     </div>
 
-    <div class="pagination" v-if="store.total > store.limit">
+    <div class="pagination" v-if="!store.groupByProject && store.total > store.limit">
       <button @click="store.prevPage()" :disabled="store.offset === 0">← Prev</button>
       <span class="page-info">
         {{ store.offset + 1 }}–{{ Math.min(store.offset + store.limit, store.total) }} of {{ store.total }}
@@ -64,6 +103,8 @@ import { useSessionsStore } from '../stores/sessions'
 import SessionRow from '../components/domain/SessionRow.vue'
 import SessionDetail from '../components/domain/SessionDetail.vue'
 import SlideOver from '../components/primitives/SlideOver.vue'
+import Toggle from '../components/primitives/Toggle.vue'
+import { formatCostDisplay, formatTokens, formatDate } from '../composables/useFormatCost'
 
 const store = useSessionsStore()
 
@@ -87,12 +128,88 @@ onMounted(() => {
   color: var(--text-primary);
   line-height: 1;
 }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-bottom: 4px;
+}
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  user-select: none;
+}
 .page-meta {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   color: var(--text-tertiary);
-  padding-bottom: 4px;
 }
+
+/* Project group header row */
+.group-row {
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 100ms;
+}
+.group-row:hover { background: var(--bg-elevated); }
+.group-row td {
+  padding: var(--space-4) var(--space-5);
+  vertical-align: middle;
+}
+.group-row .rank {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-disabled);
+  text-align: right;
+  padding-right: var(--space-2);
+}
+.group-row:first-child .rank { color: var(--amber-500); }
+.group-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.caret {
+  display: inline-block;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  transition: transform 150ms;
+}
+.caret.open { transform: rotate(90deg); }
+.count-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 1px 7px;
+}
+.group-row .time-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.group-row .token-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+.group-row .cost-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+.group-row .cost-cell.top { color: var(--amber-400); }
 
 .sessions-table-wrap {
   background: var(--bg-surface);

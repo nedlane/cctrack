@@ -1,8 +1,8 @@
 <template>
-  <tr :class="{ 'active-session': isActive }" @click="$emit('select', session.id)">
+  <tr :class="{ 'active-session': isActive, 'in-group': inGroup }" @click="$emit('select', session.id)">
     <td class="rank">{{ rank }}</td>
     <td>
-      <div class="session-name">
+      <div class="session-name" :class="{ indented: inGroup }">
         {{ displayName }}
         <span v-if="isActive" class="live-badge">Live</span>
       </div>
@@ -24,13 +24,20 @@ const props = defineProps<{
   session: Session
   rank: number
   isActive?: boolean
+  inGroup?: boolean
 }>()
 
 defineEmits<{ select: [id: string] }>()
 
-const displayName = computed(() =>
-  props.session.project || props.session.slug || props.session.id.slice(0, 8)
-)
+// In the flat list the project name is the most useful label. Inside a project
+// group the project is already the header, so show the slug (or short id) to
+// tell sibling sessions apart.
+const displayName = computed(() => {
+  if (props.inGroup) {
+    return props.session.slug || props.session.id.slice(0, 8)
+  }
+  return props.session.project || props.session.slug || props.session.id.slice(0, 8)
+})
 
 const totalTokens = computed(() =>
   props.session.total_input + props.session.total_output +
@@ -78,6 +85,12 @@ tr:first-child .rank { color: var(--amber-500); }
   align-items: center;
   gap: var(--space-2);
 }
+.session-name.indented {
+  padding-left: var(--space-5);
+  color: var(--text-secondary);
+}
+tr.in-group { background: var(--bg-base); }
+tr.in-group:hover { background: var(--bg-elevated); }
 .live-badge {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
