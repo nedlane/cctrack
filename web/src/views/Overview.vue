@@ -36,6 +36,8 @@
       />
     </div>
 
+    <MetricStrip v-if="insightMetrics.length" :metrics="insightMetrics" />
+
     <div class="charts-row" v-if="store.summary">
       <DailySpendChart :data="store.daily" />
       <TokenDonut
@@ -125,6 +127,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useDashboardStore } from '../stores/dashboard'
 import StatCard from '../components/primitives/StatCard.vue'
+import MetricStrip from '../components/primitives/MetricStrip.vue'
 import DailySpendChart from '../components/charts/DailySpendChart.vue'
 import TokenDonut from '../components/charts/TokenDonut.vue'
 import ModelBreakdown from '../components/charts/ModelBreakdown.vue'
@@ -135,6 +138,8 @@ import SessionDetail from '../components/domain/SessionDetail.vue'
 import SlideOver from '../components/primitives/SlideOver.vue'
 import type { Session, ModelSummary, HostSummary, HeatmapCell } from '../types'
 import { fetchSession, fetchModels, fetchHosts, fetchHeatmap } from '../api'
+import { formatCostCompact, formatTokens } from '../composables/useFormatCost'
+import type { Metric } from '../components/primitives/MetricStrip.vue'
 
 const store = useDashboardStore()
 const selectedSession = ref<Session | null>(null)
@@ -167,6 +172,57 @@ const weekTrend = computed(() => {
 const monthTrend = computed(() => {
   if (!store.summary?.trends) return null
   return trendPct(store.summary.month.cost, store.summary.trends.prev_month_cost)
+})
+
+// All-time aggregates (the dashboard's stat cards only cover today/week/month,
+// so these fill the gaps: grand total, per-session and per-day averages, and
+// how much of the bill is cache reads — the dominant cost in Claude Code use).
+const allTimeCost = computed(() => models.value.reduce((s, m) => s + m.total_cost, 0))
+const allTimeTokens = computed(() => models.value.reduce((s, m) => s + m.total_tokens, 0))
+const sessionCount = computed(() => models.value.reduce((s, m) => s + m.session_count, 0))
+
+const avgPerSession = computed(() =>
+  sessionCount.value > 0 ? allTimeCost.value / sessionCount.value : 0
+)
+
+const activeDays = computed(() => store.daily.filter(d => d.cost > 0))
+const avgPerDay = computed(() => {
+  const days = activeDays.value
+  return days.length ? days.reduce((s, d) => s + d.cost, 0) / days.length : 0
+})
+
+const cacheReadShare = computed(() => {
+  const b = store.summary?.cost_breakdown
+  if (!b) return 0
+  const total = b.input_cost + b.output_cost + b.cache_read_cost + b.cache_write_cost
+  return total > 0 ? (b.cache_read_cost / total) * 100 : 0
+})
+
+const insightMetrics = computed<Metric[]>(() => {
+  if (!store.summary || !models.value.length) return []
+  return [
+    {
+      label: 'All-Time Spend',
+      value: formatCostCompact(allTimeCost.value),
+      sub: formatTokens(allTimeTokens.value) + ' tokens',
+    },
+    {
+      label: 'Avg / Session',
+      value: formatCostCompact(avgPerSession.value),
+      sub: sessionCount.value + ' sessions',
+    },
+    {
+      label: 'Avg / Active Day',
+      value: formatCostCompact(avgPerDay.value),
+      sub: activeDays.value.length + ' days tracked',
+    },
+    {
+      label: 'Cache Read Cost',
+      value: Math.round(cacheReadShare.value) + '%',
+      sub: 'of total spend',
+      accent: true,
+    },
+  ]
 })
 
 async function openSession(id: string) {
