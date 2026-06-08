@@ -3,7 +3,7 @@ package store
 import (
 	"time"
 
-	"github.com/ksred/cctrack/internal/calculator"
+	"github.com/nedlane/cctrack/internal/calculator"
 )
 
 type Summary struct {

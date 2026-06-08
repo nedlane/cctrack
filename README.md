@@ -19,19 +19,17 @@ A cost tracker for [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 
 ### From source
 
+Requires Go 1.22+ and Node.js (to build the embedded dashboard).
+
 ```bash
-git clone https://github.com/ksred/cctrack.git
+git clone https://github.com/nedlane/cctrack.git
 cd cctrack
 cd web && npm install && npm run build && cd ..
 go build -o cctrack .
 ```
 
-### Go install
-
-```bash
-# Requires the web/dist directory to be pre-built
-go install github.com/ksred/cctrack@latest
-```
+The dashboard is embedded into the binary via `go:embed`, so `web/dist` must be
+built (the `npm run build` step above) before `go build`.
 
 ## Usage
 
@@ -41,7 +39,7 @@ go install github.com/ksred/cctrack@latest
 cctrack serve
 ```
 
-Opens a web dashboard on `http://localhost:8877` with real-time cost tracking. Parses logs on startup and watches for new activity.
+Opens a web dashboard on `http://localhost:7432` with real-time cost tracking. Parses logs on startup and watches for new activity.
 
 ### Parse logs manually
 
@@ -96,20 +94,20 @@ an interval. Mirrored logs are cached under `~/.cctrack/hosts/<host>/projects`.
 1. Claude Code writes JSONL logs to `~/.claude/projects/<project>/<session>.jsonl`
 2. cctrack scans these files, extracts token usage from `assistant` messages, and deduplicates by `requestId`
 3. Costs are calculated using Anthropic's published per-token rates for each model
-4. Data is stored in a local SQLite database (`~/.config/cctrack/cctrack.db`)
+4. Data is stored in a local SQLite database (`~/.cctrack/cctrack.db`)
 5. The `serve` command starts an HTTP server with a REST API and embedded Vue SPA
 6. A file watcher detects new log activity and pushes updates via WebSocket
 
 ## Configuration
 
-Config is stored at `~/.config/cctrack/config.json`:
+Config is stored at `~/.cctrack/config.json`:
 
 ```json
 {
   "log_dir": "~/.claude/projects",
-  "db_path": "~/.config/cctrack/cctrack.db",
-  "port": 8877,
-  "monthly_budget_usd": 200,
+  "db_path": "~/.cctrack/cctrack.db",
+  "port": 7432,
+  "monthly_budget_usd": 0,
   "open_browser_on_serve": true,
   "tailnet": {
     "enabled": false,

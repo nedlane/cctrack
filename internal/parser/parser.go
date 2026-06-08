@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/ksred/cctrack/internal/calculator"
-	"github.com/ksred/cctrack/internal/store"
+	"github.com/nedlane/cctrack/internal/calculator"
+	"github.com/nedlane/cctrack/internal/store"
 )
 
 type Parser struct {

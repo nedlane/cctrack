@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ksred/cctrack/internal/config"
-	"github.com/ksred/cctrack/internal/parser"
+	"github.com/nedlane/cctrack/internal/config"
+	"github.com/nedlane/cctrack/internal/parser"
 )
 
 // HostResult reports the outcome of syncing one peer.

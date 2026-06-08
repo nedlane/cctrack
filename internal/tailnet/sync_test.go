@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ksred/cctrack/internal/parser"
-	"github.com/ksred/cctrack/internal/store"
+	"github.com/nedlane/cctrack/internal/parser"
+	"github.com/nedlane/cctrack/internal/store"
 )
 
 // fakeDiscoverer returns a fixed peer list.

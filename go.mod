@@ -1,4 +1,4 @@
-module github.com/ksred/cctrack
+module github.com/nedlane/cctrack
 
 go 1.22
 

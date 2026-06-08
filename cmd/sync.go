@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ksred/cctrack/internal/config"
-	"github.com/ksred/cctrack/internal/parser"
-	"github.com/ksred/cctrack/internal/store"
-	"github.com/ksred/cctrack/internal/tailnet"
+	"github.com/nedlane/cctrack/internal/config"
+	"github.com/nedlane/cctrack/internal/parser"
+	"github.com/nedlane/cctrack/internal/store"
+	"github.com/nedlane/cctrack/internal/tailnet"
 	"github.com/spf13/cobra"
 )
 
