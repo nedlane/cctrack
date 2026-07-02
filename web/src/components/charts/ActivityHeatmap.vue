@@ -3,22 +3,24 @@
     <div class="chart-header">
       <div class="chart-title">Activity Heatmap</div>
     </div>
-    <div class="heatmap-grid">
-      <!-- Hour labels across top -->
-      <div class="heatmap-corner"></div>
-      <div v-for="h in hourLabels" :key="'h'+h.hour" class="hour-label">{{ h.label }}</div>
+    <div class="heatmap-scroll">
+      <div class="heatmap-grid">
+        <!-- Hour labels across top -->
+        <div class="heatmap-corner"></div>
+        <div v-for="h in hourLabels" :key="'h'+h.hour" class="hour-label">{{ h.label }}</div>
 
-      <!-- Rows: one per day of week -->
-      <template v-for="d in dayLabels" :key="'d'+d.day">
-        <div class="day-label">{{ d.label }}</div>
-        <div
-          v-for="h in 24"
-          :key="d.day + '-' + (h-1)"
-          class="heatmap-cell"
-          :style="{ background: cellColor(d.day, h - 1) }"
-          :title="cellTooltip(d.day, h - 1)"
-        ></div>
-      </template>
+        <!-- Rows: one per day of week -->
+        <template v-for="d in dayLabels" :key="'d'+d.day">
+          <div class="day-label">{{ d.label }}</div>
+          <div
+            v-for="h in 24"
+            :key="d.day + '-' + (h-1)"
+            class="heatmap-cell"
+            :style="{ background: cellColor(d.day, h - 1) }"
+            :title="cellTooltip(d.day, h - 1)"
+          ></div>
+        </template>
+      </div>
     </div>
     <div class="heatmap-legend">
       <span class="legend-label">Less</span>
@@ -114,6 +116,10 @@ function cellTooltip(day: number, hour: number): string {
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
+.heatmap-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .heatmap-grid {
   display: grid;
   grid-template-columns: 36px repeat(24, 1fr);
@@ -164,5 +170,11 @@ function cellTooltip(day: number, hour: number): string {
 .legend-swatch {
   width: 10px;
   height: 10px;
+}
+
+@media (max-width: 768px) {
+  .heatmap-card { padding: var(--space-4); }
+  /* Keep hours legible by scrolling the grid rather than shrinking cells. */
+  .heatmap-grid { min-width: 480px; }
 }
 </style>

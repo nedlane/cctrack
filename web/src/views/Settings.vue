@@ -48,7 +48,7 @@
         <div class="section-label">About</div>
         <div class="about-grid">
           <span>Version</span><span class="mono">v0.1.0</span>
-          <span>Rate Card</span><span class="mono">v1.0</span>
+          <span>Rate Card</span><span class="mono">v1.1</span>
         </div>
       </section>
 
@@ -190,5 +190,14 @@ onMounted(() => {
 .save-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+@media (max-width: 768px) {
+  .page-title { font-size: 30px; }
+  .settings-form {
+    max-width: 100%;
+    gap: var(--space-8);
+  }
+  .save-btn { width: 100%; }
 }
 </style>

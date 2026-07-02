@@ -495,4 +495,26 @@ tbody tr:first-child .rank { color: var(--amber-500); }
   text-align: right;
 }
 .cost-cell.top { color: var(--amber-400); }
+
+@media (max-width: 900px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title { font-size: 30px; }
+  .charts-row { gap: var(--space-4); }
+  .chart-card { padding: var(--space-4); }
+  .sessions-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sessions-table-wrap table { min-width: 520px; }
+  thead th,
+  td {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}
 </style>

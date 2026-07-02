@@ -271,4 +271,25 @@ thead th.sortable:hover { color: var(--text-secondary); }
   font-size: 12px;
   color: var(--text-tertiary);
 }
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .page-title { font-size: 30px; }
+  .header-right {
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+  .sessions-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sessions-table-wrap table { min-width: 560px; }
+  thead th { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .group-row td { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .pagination { gap: var(--space-4); }
+}
 </style>

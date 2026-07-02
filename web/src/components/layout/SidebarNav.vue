@@ -1,13 +1,13 @@
 <template>
   <aside class="sidebar">
     <div class="sidebar-top">
-      <router-link class="logo" to="/">
+      <router-link class="logo" to="/" @click="$emit('navigate')">
         <div class="logo-glyph"></div>
         <span class="logo-text">CCTRACK</span>
       </router-link>
     </div>
 
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" @click="$emit('navigate')">
       <div class="nav-label">Dashboard</div>
 
       <router-link class="nav-item" to="/" exact-active-class="active">
@@ -60,7 +60,7 @@
 
     <div class="sidebar-footer">
       <ConnectionStatus :status="connectionStatus" />
-      <div class="version-str">v0.1.0 · rates v1.0</div>
+      <div class="version-str">v0.1.0 · rates v1.1</div>
     </div>
   </aside>
 </template>
@@ -70,6 +70,7 @@ import type { ConnectionStatus as ConnStatus } from '../../types'
 import ConnectionStatus from './ConnectionStatus.vue'
 
 defineProps<{ connectionStatus: ConnStatus }>()
+defineEmits<{ navigate: [] }>()
 </script>
 
 <style scoped>
@@ -180,5 +181,33 @@ defineProps<{ connectionStatus: ConnStatus }>()
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+/* Mobile: turn the sidebar into an off-canvas drawer toggled from the top bar. */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    min-width: 260px;
+    max-width: 82vw;
+    z-index: 80;
+    transform: translateX(-100%);
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-right: 1px solid var(--border-default);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  /* Larger tap targets for touch. */
+  .nav-item {
+    padding: 12px var(--space-4);
+    font-size: 15px;
+  }
+  .nav-icon {
+    width: 18px;
+    height: 18px;
+  }
 }
 </style>

@@ -122,4 +122,8 @@ tr.in-group:hover { background: var(--bg-elevated); }
   text-align: right;
 }
 .cost-cell.top { color: var(--amber-400); }
+
+@media (max-width: 768px) {
+  td { padding: var(--space-3); }
+}
 </style>

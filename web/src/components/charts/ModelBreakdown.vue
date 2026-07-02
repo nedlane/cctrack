@@ -181,4 +181,8 @@ const savingsEstimate = computed(() => {
   color: var(--amber-400);
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .model-card { padding: var(--space-4); }
+}
 </style>

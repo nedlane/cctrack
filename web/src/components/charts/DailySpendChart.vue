@@ -137,4 +137,8 @@ const chartOptions = {
   height: 180px;
   position: relative;
 }
+
+@media (max-width: 768px) {
+  .chart-card { padding: var(--space-4); }
+}
 </style>

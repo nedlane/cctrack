@@ -140,4 +140,9 @@ const budgetColor = computed(() => {
   bottom: 0;
   transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+@media (max-width: 768px) {
+  .stat-card { padding: var(--space-4); }
+  .stat-value { font-size: 42px; }
+}
 </style>

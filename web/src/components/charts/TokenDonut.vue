@@ -151,4 +151,8 @@ const chartOptions = {
   color: var(--text-disabled);
   font-size: 10px;
 }
+
+@media (max-width: 768px) {
+  .donut-card { padding: var(--space-4); }
+}
 </style>

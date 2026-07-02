@@ -122,4 +122,8 @@ function barWidth(cost: number) {
 .bar-sub {
   color: var(--text-disabled);
 }
+
+@media (max-width: 768px) {
+  .host-card { padding: var(--space-4); }
+}
 </style>

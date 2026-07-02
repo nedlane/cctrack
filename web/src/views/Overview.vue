@@ -336,4 +336,33 @@ thead th.right { text-align: right; }
   margin-top: var(--space-8);
   animation-delay: 440ms;
 }
+
+/* Stack the multi-column rows before they get too cramped. */
+@media (max-width: 900px) {
+  .charts-row,
+  .insights-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title { font-size: 30px; }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .charts-row,
+  .insights-row {
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  /* Wide tables scroll horizontally instead of breaking the viewport. */
+  .sessions-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sessions-table-wrap table { min-width: 520px; }
+  thead th { padding-left: var(--space-3); padding-right: var(--space-3); }
+}
 </style>

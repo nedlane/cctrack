@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <h1 class="page-title">Rate Card</h1>
-      <div class="page-meta">v1.0 — bundled with binary</div>
+      <div class="page-meta">v1.1 — bundled with binary</div>
     </div>
 
     <div class="rate-table-wrap" v-if="rates.length">
@@ -29,7 +29,8 @@
     </div>
 
     <p class="rate-note">
-      All prices per million tokens. Rates are bundled with the binary — update cctrack to get the latest rates.
+      All prices per million tokens. Cache write uses Anthropic's 5-minute prompt cache rate.
+      Rates are bundled with the binary — update cctrack to get the latest rates.
     </p>
   </div>
 </template>
@@ -108,5 +109,19 @@ td.right { text-align: right; }
   margin-top: var(--space-6);
   font-size: 13px;
   color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .page-title { font-size: 30px; }
+  .rate-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rate-table-wrap table { min-width: 520px; }
+  thead th,
+  td {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
 }
 </style>
