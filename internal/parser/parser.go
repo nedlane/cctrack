@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/nedlane/cctrack/internal/calculator"
 	"github.com/nedlane/cctrack/internal/store"
@@ -137,14 +138,16 @@ func (p *Parser) parseFile(path, host string) ([]string, error) {
 
 	// Aggregate token usage per session
 	type sessionAgg struct {
-		model     string
-		slug      string
-		sessionID string
-		timestamp string
-		input     int64
-		output    int64
-		cacheRead int64
+		model      string
+		modelTS    string
+		slug       string
+		sessionID  string
+		timestamp  string
+		input      int64
+		output     int64
+		cacheRead  int64
 		cacheWrite int64
+		cost       float64
 	}
 	sessions := make(map[string]*sessionAgg)
 
@@ -166,8 +169,13 @@ func (p *Parser) parseFile(path, host string) ([]string, error) {
 			sessions[sid] = agg
 		}
 
-		if event.Message.Model != "" {
+		// The session's model reflects the main transcript only: subagents run
+		// on their own models and must not relabel the parent session.
+		// Synthetic error events carry the pseudo-model "<synthetic>".
+		if !info.IsSubagent && strings.HasPrefix(event.Message.Model, "claude") &&
+			(agg.model == "" || event.Timestamp > agg.modelTS) {
 			agg.model = event.Message.Model
+			agg.modelTS = event.Timestamp
 		}
 		if event.Slug != "" {
 			agg.slug = event.Slug
@@ -182,15 +190,17 @@ func (p *Parser) parseFile(path, host string) ([]string, error) {
 		agg.cacheRead += u.CacheReadInputTokens
 		agg.cacheWrite += u.CacheCreationInputTokens
 
+		usage := calculator.TokenUsage{
+			InputTokens:      u.InputTokens,
+			OutputTokens:     u.OutputTokens,
+			CacheReadTokens:  u.CacheReadInputTokens,
+			CacheWriteTokens: u.CacheCreationInputTokens,
+		}
+		cost := calculator.Calculate(event.Message.Model, usage)
+		agg.cost += cost.TotalCost
+
 		// Store per-request record if we have a requestID
 		if requestID != "" {
-			usage := calculator.TokenUsage{
-				InputTokens:      u.InputTokens,
-				OutputTokens:     u.OutputTokens,
-				CacheReadTokens:  u.CacheReadInputTokens,
-				CacheWriteTokens: u.CacheCreationInputTokens,
-			}
-			cost := calculator.Calculate(event.Message.Model, usage)
 			requestRecords = append(requestRecords, store.RequestRecord{
 				RequestID:        requestID,
 				SessionID:        sid,
@@ -215,14 +225,6 @@ func (p *Parser) parseFile(path, host string) ([]string, error) {
 	// Upsert each session
 	var affectedIDs []string
 	for sid, agg := range sessions {
-		usage := calculator.TokenUsage{
-			InputTokens:      agg.input,
-			OutputTokens:     agg.output,
-			CacheReadTokens:  agg.cacheRead,
-			CacheWriteTokens: agg.cacheWrite,
-		}
-		cost := calculator.Calculate(agg.model, usage)
-
 		project := info.Project
 		delta := store.SessionDelta{
 			ID:              sid,
@@ -235,7 +237,7 @@ func (p *Parser) parseFile(path, host string) ([]string, error) {
 			DeltaOutput:     agg.output,
 			DeltaCacheRead:  agg.cacheRead,
 			DeltaCacheWrite: agg.cacheWrite,
-			DeltaCost:       cost.TotalCost,
+			DeltaCost:       agg.cost,
 		}
 
 		if err := p.store.UpsertSession(delta); err != nil {

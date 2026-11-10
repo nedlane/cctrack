@@ -8,7 +8,7 @@ import (
 
 var (
 	Version   = "0.1.0"
-	RateCardV = "1.0"
+	RateCardV = "1.1"
 	BuildDate = "dev"
 )
 
